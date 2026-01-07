@@ -1,38 +1,53 @@
-Add Mosquitto to Windows PATH (to run mosquitto from any terminal):
-Right-click "This PC" → Properties → Advanced system settings → Environment Variables
-Under "System variables", select Path → Edit → New
-Add: C:\Program Files\mosquitto
-Click OK to save
+## Install and Setup Mosquitto MQTT Broker on Windows
 
-Configure Mosquitto:
-Open the file:
-C:\Program Files\mosquitto\mosquitto.conf
-(create it if it doesn't exist)
-Add the following configuration:
+### 1. Add Mosquitto to Windows PATH
+(To run mosquitto from any terminal)
 
+1. Right-click "This PC" → Properties → Advanced system settings → Environment Variables
+2. Under "System variables", select Path → Edit → New
+3. Add: `C:\Program Files\mosquitto`
+4. Click OK to save
 
-conf# Default MQTT listener (for ESP32 TCP connections)
+### 2. Configure Mosquitto
+1. Open File Explorer and navigate to: `C:\Program Files\mosquitto`
+2. Create or edit the file: `mosquitto.conf`
+3. If the file doesn't exist, create it as a plain text file
+4. Add the following configuration:
+
+```conf
+# Default MQTT listener (for ESP32 TCP connections)
 listener 1883
 
 # WebSockets listener (for browser/JavaScript Paho client)
 listener 9001
 protocol websockets
 
-# Allow anonymous access (for testing only)
+# Allow anonymous access (for testing only - disable in production)
 allow_anonymous true
 
 # Enable verbose logging
 log_dest stdout
 log_type all
+```
 
-Start the MQTT Broker:
-Open a new Command Prompt
-Run:
+5. Save the file
 
+### 3. Start the MQTT Broker
 
-cmdmosquitto -c "C:\Program Files\mosquitto\mosquitto.conf" -v
-You should see:
-textOpening ipv4 listen socket on port 1883.
+1. Open a Command Prompt or PowerShell
+2. Run the following command:
+
+```cmd
+mosquitto -c "C:\Program Files\mosquitto\mosquitto.conf" -v
+```
+
+3. You should see output similar to:
+
+```
+Opening ipv4 listen socket on port 1883.
 Opening websockets listen socket on port 9001.
 mosquitto version x.x.x running
-→ Keep this terminal open
+```
+
+4. Keep this terminal open while the broker is running
+
