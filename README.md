@@ -60,7 +60,7 @@ cd computer_networks
    - Note the **IPv4 Address** (typically looks like `192.168.x.x`)
 
 2. **Configure the Arduino sketch**:
-   - Open `ght22/ght22.ino` in Arduino IDE
+   - Open `dht22/dht22.ino` in Arduino IDE
    - Find the following lines and update them:
    
    ```cpp
@@ -260,8 +260,8 @@ Data Flow:
 ```
 computer_networks/
 ├── README.md (this file)
-├── ght22/
-│   └── ght22.ino (ESP32 Arduino sketch)
+├── dht22/
+│   └── dht22.ino (ESP32 Arduino sketch)
 └── web_server/
     ├── server.js (Node.js backend server)
     ├── package.json (Node.js dependencies)
