@@ -16,17 +16,6 @@ Before starting, ensure you have the following installed and configured:
 - **Python 3.x** - Optional, only needed if using Python's built-in server instead of Live Server
 - **Git** - For cloning the repository (download from [git-scm.com](https://git-scm.com/))
 
-## Getting Started
-
-### Clone the Repository
-
-Open Command Prompt or PowerShell and run:
-
-```cmd
-git clone https://github.com/MuhammadBoota09299/computer_networks.git
-cd computer_networks
-```
-
 ## Table of Contents
 
 1. [Getting Started](#getting-started)
@@ -39,6 +28,17 @@ cd computer_networks
 8. [Troubleshooting](#troubleshooting)
 
 ---
+
+## Getting Started
+
+### Clone the Repository
+
+Open Command Prompt or PowerShell and run:
+
+```cmd
+git clone https://github.com/MuhammadBoota09299/computer_networks.git
+cd computer_networks
+```
 
 ## Setting Up ESP32 Controller
 
