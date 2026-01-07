@@ -51,3 +51,51 @@ mosquitto version x.x.x running
 
 4. Keep this terminal open while the broker is running
 
+## Setting Up the Database
+
+1. Open MySQL Workbench and connect to your MySQL server
+2. Run the following SQL commands:
+
+```sql
+CREATE DATABASE cold_storage;
+USE cold_storage;
+
+CREATE TABLE sensor_readings (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  device_id VARCHAR(100),
+  temperature DECIMAL(5,2),
+  humidity DECIMAL(5,2),
+  esp32_timestamp BIGINT,
+  server_timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  INDEX (server_timestamp DESC)
+);
+```
+
+This will create your database and table for storing sensor readings.
+
+## Installing Node.js
+
+1. Run as administrator: `node-v24.12.0-x64.msi` (the installer file in the repo)
+2. Follow the installation wizard and complete the installation
+3. After installation, open Command Prompt or PowerShell
+4. Navigate to the `web_server` directory:
+
+```cmd
+cd path\to\web_server
+```
+
+5. Install dependencies:
+
+```cmd
+npm install
+```
+
+6. Start the server:
+
+```cmd
+node server.js
+```
+
+After that, your server will start running and you can access it via `http://localhost:3000` (or the configured port).
+
+
