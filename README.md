@@ -14,28 +14,76 @@ Before starting, ensure you have:
 
 ## Table of Contents
 
-1. [Install and Setup Mosquitto MQTT Broker](#install-and-setup-mosquitto-mqtt-broker-on-windows)
-2. [Setting Up the Database](#setting-up-the-database)
-3. [Installing Node.js](#installing-nodejs)
-4. [Hosting the Website Locally](#hosting-the-website-locally)
-5. [Project Architecture](#project-architecture)
-6. [Troubleshooting](#troubleshooting)
+1. [Setting Up ESP32 Controller](#setting-up-esp32-controller)
+2. [Install and Setup Mosquitto MQTT Broker](#install-and-setup-mosquitto-mqtt-broker-on-windows)
+3. [Setting Up the Database](#setting-up-the-database)
+4. [Installing Node.js](#installing-nodejs)
+5. [Hosting the Website Locally](#hosting-the-website-locally)
+6. [Project Architecture](#project-architecture)
+7. [Troubleshooting](#troubleshooting)
 
 ---
 
-## Install and Setup Mosquitto MQTT Broker on Windows
+## Setting Up ESP32 Controller
 
-### 1. Add Mosquitto to Windows PATH
-(To run mosquitto from any terminal)
+### Prerequisites
+- Arduino IDE installed with ESP32 board support
+- ESP32 board connected to your computer via USB
+- Your laptop and ESP32 must be connected to the same WiFi network
+
+### Steps
+
+1. **Find your computer's IP address**:
+   - Open Command Prompt or PowerShell
+   - Run:
+   
+   ```cmd
+   ipconfig
+   ```
+   
+   - Note the **IPv4 Address** (typically looks like `192.168.x.x`)
+
+2. **Configure the Arduino sketch**:
+   - Open `ght22/ght22.ino` in Arduino IDE
+   - Find the following lines and update them:
+   
+   ```cpp
+   const char* mqtt_server = "YOUR_IP_ADDRESS";  // Replace with your IPv4 address from step 1
+   const char* ssid = "YOUR_WIFI_NAME";          // Replace with your WiFi network name
+   const char* password = "YOUR_WIFI_PASSWORD";  // Replace with your WiFi password
+   ```
+
+3. **Compile and upload**:
+   - Select your ESP32 board: Tools → Board → ESP32 Dev Module (or your specific board)
+   - Select the correct COM port: Tools → Port
+   - Click Upload (or press Ctrl+U)
+   - Wait for the upload to complete
+
+4. **Verify connection**:
+   - Open the Serial Monitor (Tools → Serial Monitor) to view debug messages
+   - You should see connection confirmation messages
+
+---
+
+### 1. Install Mosquitto
+
+1. Download the Mosquitto installer from the repo or from [mosquitto.org](https://mosquitto.org/download/)
+2. Run the installer as administrator: `mosquitto-2.0.x-install-windows-x64.exe`
+3. Follow the installation wizard and complete the installation
+4. Mosquitto will be installed to `C:\Program Files\mosquitto`
+
+### 2. Add Mosquitto to Windows PATH
+
+To run mosquitto from any Command Prompt or PowerShell:
 
 1. Right-click "This PC" → Properties → Advanced system settings → Environment Variables
 2. Under "System variables", select Path → Edit → New
 3. Add: `C:\Program Files\mosquitto`
-4. Click OK to save
+4. Click OK and restart Command Prompt/PowerShell
 
-### 2. Configure Mosquitto
+### 3. Configure Mosquitto
 1. Open File Explorer and navigate to: `C:\Program Files\mosquitto`
-2. Create or edit the file: `mosquitto.conf`
+2. Create or edit the file by vs code: `mosquitto.conf`
 3. If the file doesn't exist, create it as a plain text file
 4. Add the following configuration:
 
@@ -57,7 +105,7 @@ log_type all
 
 5. Save the file
 
-### 3. Start the MQTT Broker
+### 4. Start the MQTT Broker
 
 1. Open a Command Prompt or PowerShell
 2. Run the following command:
@@ -76,7 +124,7 @@ mosquitto version x.x.x running
 
 4. Keep this terminal open while the broker is running
 
-### 4. Verify the Broker is Running
+### 5. Verify the Broker is Running
 
 Test MQTT connectivity:
 - **MQTT (TCP)**: Connect to `localhost:1883`

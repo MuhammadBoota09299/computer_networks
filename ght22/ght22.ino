@@ -16,7 +16,7 @@ const int mqtt_port = 1883;
 const char* mqtt_topic = "esp32/data";
 
 // HTTP Configuration
-const char* http_server = "http://192.168.43.127:3000/api/sensor-data";  // Node.js server endpoint
+const char* http_server = "http://mqtt_sever:3000/api/sensor-data";  // Node.js server endpoint
 const unsigned long HTTP_TIMEOUT = 5000;  // 5 second timeout
 
 // DHT22 Sensor on GPIO15
