@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cold Storage Monitoring Dashboard</title>
+  <link rel="stylesheet" href="styles.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/paho-mqtt/1.0.1/mqttws31.min.js"></script>
+</head>
+<body>
+  <div class="container">
+    <!-- Header -->
+    <header>
+      <h1>🧊 Cold Storage Monitoring Dashboard</h1>
+      <p>Dual Protocol: Real-time MQTT + Periodic HTTP Logging</p>
+    </header>
+
+    <!-- Connection Status -->
+    <div class="status-card">
+      <div class="status-container">
+        <div id="mqtt-status" class="status disconnected">
+          <span class="status-indicator"></span>
+          <span id="mqtt-status-text">MQTT: Connecting...</span>
+        </div>
+        <div id="http-status" class="status disconnected">
+          <span class="status-indicator"></span>
+          <span id="http-status-text">HTTP: Polling...</span>
+        </div>
+      </div>
+      <div class="protocol-info">
+        Active Protocol: <strong id="active-protocol">Both</strong>
+      </div>
+    </div>
+
+    <!-- Protocol Selector -->
+    <div class="protocol-selector">
+      <button id="toggle-mqtt" class="protocol-btn active" data-protocol="mqtt">
+        🔄 MQTT Real-time
+      </button>
+      <button id="toggle-http" class="protocol-btn active" data-protocol="http">
+        📊 HTTP Periodic
+      </button>
+      <button id="toggle-both" class="protocol-btn active" data-protocol="both">
+        ⚡ Use Both
+      </button>
+    </div>
+
+    <!-- Main Dashboard -->
+    <div class="dashboard">
+      <!-- Temperature Card -->
+      <div class="temperature-card">
+        <h2>🌡️ Temperature</h2>
+        <div class="sensor-value" id="temperature">--.-</div>
+        <div class="unit">°C</div>
+        <div class="data-source" id="temp-source"></div>
+        <div class="stats-grid">
+          <div class="stat-item">
+            <div class="stat-label">Max (24h)</div>
+            <div class="stat-value" id="max-temp">--</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-label">Min (24h)</div>
+            <div class="stat-value" id="min-temp">--</div>
+          </div>
+        </div>
+        <div class="last-update" id="temp-update">Waiting for data...</div>
+        <div id="temp-alert" class="alert-box" style="display: none;"></div>
+      </div>
+
+      <!-- Humidity Card -->
+      <div class="humidity-card">
+        <h2>💧 Humidity</h2>
+        <div class="sensor-value" id="humidity">--.-</div>
+        <div class="unit">%</div>
+        <div class="data-source" id="humidity-source"></div>
+        <div class="stats-grid">
+          <div class="stat-item">
+            <div class="stat-label">Max (24h)</div>
+            <div class="stat-value" id="max-humidity">--</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-label">Min (24h)</div>
+            <div class="stat-value" id="min-humidity">--</div>
+          </div>
+        </div>
+        <div class="last-update" id="humidity-update">Waiting for data...</div>
+        <div id="humidity-alert" class="alert-box" style="display: none;"></div>
+      </div>
+
+      <!-- Statistics Card -->
+      <div class="statistics-card">
+        <h2>📊 Statistics</h2>
+        <div class="stats-grid">
+          <div class="stat-item">
+            <div class="stat-label">Data Points</div>
+            <div class="stat-value" id="data-count">0</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-label">MQTT Updates</div>
+            <div class="stat-value" id="mqtt-count">0</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-label">HTTP Posts</div>
+            <div class="stat-value" id="http-post-count">0</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-label">Alerts</div>
+            <div class="stat-value" id="alert-count">0</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Chart -->
+      <div class="chart-container full-width">
+        <h2>📈 Historical Data (All Available Readings)</h2>
+        <div class="chart-wrapper">
+          <canvas id="dataChart"></canvas>
+        </div>
+      </div>
+
+      <!-- Message Log -->
+      <div class="log-card full-width">
+        <h2>📋 Activity Log (Real-time Events)</h2>
+        <div id="message-log"></div>
+      </div>
+
+      <!-- MQTT vs HTTP Comparison -->
+      <div class="comparison-section full-width">
+        <div class="comparison-card">
+          <h3>🔄 MQTT (Real-time Streaming)</h3>
+          <p class="protocol-description">Data sent on every reading (&lt;1 second interval)</p>
+          
+          <div class="pros">
+            <h4>✓ Advantages:</h4>
+            <ul>
+              <li>Instant data updates (&lt;1 second latency)</li>
+              <li>Immediate alerts on temperature changes</li>
+              <li>Real-time WebSocket connection</li>
+              <li>Best for critical cold storage items</li>
+            </ul>
+          </div>
+
+          <div class="cons">
+            <h4>✗ Disadvantages:</h4>
+            <ul>
+              <li>High network bandwidth consumption</li>
+              <li>Increased database write load</li>
+              <li>Requires MQTT broker infrastructure</li>
+              <li>Higher operational costs</li>
+            </ul>
+          </div>
+
+          <p class="recommendation">Best For: Critical items requiring instant alerts (dairy, frozen products)</p>
+        </div>
+
+        <div class="comparison-card">
+          <h3>📊 HTTP (Periodic Logging)</h3>
+          <p class="protocol-description">Data sent every 60 seconds (configurable)</p>
+          
+          <div class="pros">
+            <h4>✓ Advantages:</h4>
+            <ul>
+              <li>Lower bandwidth usage (60% reduction)</li>
+              <li>Reduced database write load</li>
+              <li>Better battery life for remote sensors</li>
+              <li>Simpler implementation</li>
+            </ul>
+          </div>
+
+          <div class="cons">
+            <h4>✗ Disadvantages:</h4>
+            <ul>
+              <li>Delayed alerts (60 second lag)</li>
+              <li>May miss rapid temperature spikes</li>
+              <li>Less granular real-time insight</li>
+              <li>Not ideal for emergency response</li>
+            </ul>
+          </div>
+
+          <p class="recommendation">Best For: General warehouse monitoring with non-critical items</p>
+        </div>
+
+        <div class="comparison-card active">
+          <h3>⚡ Hybrid (Both Protocols)</h3>
+          <p class="protocol-description">Use MQTT for real-time + HTTP for backup (RECOMMENDED)</p>
+          
+          <div class="pros">
+            <h4>✓ Advantages:</h4>
+            <ul>
+              <li>Real-time alerts via MQTT + reliable logging via HTTP</li>
+              <li>Redundancy - works if one protocol fails</li>
+              <li>Balances speed and efficiency</li>
+              <li>Best scalability for enterprise systems</li>
+            </ul>
+          </div>
+
+          <div class="cons">
+            <h4>✗ Disadvantages:</h4>
+            <ul>
+              <li>More complex implementation</li>
+              <li>Higher initial setup cost</li>
+              <li>Requires managing two protocols</li>
+              <li>Potential data duplication</li>
+            </ul>
+          </div>
+
+          <p class="recommendation">Best For: Professional cold storage systems requiring maximum reliability</p>
+        </div>
+      </div>
+
+      <!-- Recommendation -->
+      <div class="recommendation-card full-width">
+        <h2>💡 Recommendation for Cold Storage Systems</h2>
+        <div class="recommendation-content">
+          <p><strong>Hybrid Approach (RECOMMENDED):</strong></p>
+          <ul>
+            <li>Use <strong>MQTT</strong> for critical items (dairy, frozen foods) - instant alerts prevent spoilage losses</li>
+            <li>Use <strong>HTTP Periodic</strong> for non-critical items - reduces server load and bandwidth costs</li>
+            <li>Implement <strong>batching</strong> - send MQTT data every 30 seconds instead of every reading</li>
+            <li>Monitor <strong>key metrics</strong> - track both real-time spikes and average trends</li>
+            <li>Add <strong>fallback logic</strong> - if MQTT fails, HTTP ensures data is still logged</li>
+          </ul>
+
+          <p style="margin-top: 20px; padding: 15px; background: #f0f4ff; border-radius: 8px; border-left: 4px solid #667eea;">
+            <strong>Implementation Strategy:</strong> Deploy MQTT as primary for instant notifications (critical for perishables) 
+            while HTTP periodic logging acts as backup and historical archive. This dual approach ensures zero data loss 
+            while maintaining real-time visibility for emergency response.
+          </p>
+        </div>
+      </div>
+
+      <!-- Protocol Comparison Table -->
+      <div class="comparison-table full-width">
+        <h2>📋 Detailed Comparison Table</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>Feature</th>
+              <th>MQTT (Real-time)</th>
+              <th>HTTP (Periodic)</th>
+              <th>Hybrid (Both)</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>Latency</strong></td>
+              <td>&lt;1 second</td>
+              <td>60+ seconds</td>
+              <td>&lt;1 second (MQTT) + 60s backup</td>
+            </tr>
+            <tr>
+              <td><strong>Bandwidth</strong></td>
+              <td>High (10-20 KB/min)</td>
+              <td>Low (0.5-1 KB/min)</td>
+              <td>Medium (combined)</td>
+            </tr>
+            <tr>
+              <td><strong>Database Load</strong></td>
+              <td>High writes/sec</td>
+              <td>Low writes/min</td>
+              <td>Moderate (batched)</td>
+            </tr>
+            <tr>
+              <td><strong>Cost</strong></td>
+              <td>Higher</td>
+              <td>Lower</td>
+              <td>Optimal</td>
+            </tr>
+            <tr>
+              <td><strong>Alert Speed</strong></td>
+              <td>Immediate</td>
+              <td>Delayed</td>
+              <td>Immediate (guaranteed)</td>
+            </tr>
+            <tr>
+              <td><strong>Data Loss Risk</strong></td>
+              <td>Possible</td>
+              <td>Minimal</td>
+              <td>None</td>
+            </tr>
+            <tr>
+              <td><strong>Setup Complexity</strong></td>
+              <td>Medium</td>
+              <td>Simple</td>
+              <td>Complex</td>
+            </tr>
+            <tr>
+              <td><strong>Scalability</strong></td>
+              <td>100-1K devices</td>
+              <td>10K+ devices</td>
+              <td>1K-10K devices</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
