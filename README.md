@@ -4,23 +4,39 @@ A comprehensive IoT monitoring system using ESP32 microcontroller to track tempe
 
 ## Prerequisites
 
-Before starting, ensure you have:
-- Windows 10 or later
-- Administrator access to your computer
-- MySQL Server installed and running
-- Visual Studio Code (optional but recommended)
-- Node.js v24.12.0 (included in the repo)
-- Python 3.x installed (optional, for alternative server option)
+Before starting, ensure you have the following installed and configured:
+
+- **Windows 10 or later** - Operating system
+- **Administrator access** - Required for installing software
+- **Arduino IDE** - For programming the ESP32 (download from [arduino.cc](https://www.arduino.cc/en/software))
+- **MySQL Server** - Database server (installed and running)
+- **MySQL Workbench** - For database management (download from [mysql.com](https://www.mysql.com/products/workbench/))
+- **Visual Studio Code** - Code editor (optional but recommended)
+- **Node.js v24.12.0** - Included in the repo, or download from [nodejs.org](https://nodejs.org/)
+- **Python 3.x** - Optional, only needed if using Python's built-in server instead of Live Server
+- **Git** - For cloning the repository (download from [git-scm.com](https://git-scm.com/))
+
+## Getting Started
+
+### Clone the Repository
+
+Open Command Prompt or PowerShell and run:
+
+```cmd
+git clone https://github.com/MuhammadBoota09299/computer_networks.git
+cd computer_networks
+```
 
 ## Table of Contents
 
-1. [Setting Up ESP32 Controller](#setting-up-esp32-controller)
-2. [Install and Setup Mosquitto MQTT Broker](#install-and-setup-mosquitto-mqtt-broker-on-windows)
-3. [Setting Up the Database](#setting-up-the-database)
-4. [Installing Node.js](#installing-nodejs)
-5. [Hosting the Website Locally](#hosting-the-website-locally)
-6. [Project Architecture](#project-architecture)
-7. [Troubleshooting](#troubleshooting)
+1. [Getting Started](#getting-started)
+2. [Setting Up ESP32 Controller](#setting-up-esp32-controller)
+3. [Install and Setup Mosquitto MQTT Broker](#install-and-setup-mosquitto-mqtt-broker-on-windows)
+4. [Setting Up the Database](#setting-up-the-database)
+5. [Installing Node.js](#installing-nodejs)
+6. [Hosting the Website Locally](#hosting-the-website-locally)
+7. [Project Architecture](#project-architecture)
+8. [Troubleshooting](#troubleshooting)
 
 ---
 
@@ -63,7 +79,7 @@ Before starting, ensure you have:
    - Open the Serial Monitor (Tools → Serial Monitor) to view debug messages
    - You should see connection confirmation messages
 
----
+## Install and Setup Mosquitto MQTT Broker on Windows
 
 ### 1. Install Mosquitto
 
@@ -83,7 +99,7 @@ To run mosquitto from any Command Prompt or PowerShell:
 
 ### 3. Configure Mosquitto
 1. Open File Explorer and navigate to: `C:\Program Files\mosquitto`
-2. Create or edit the file by vs code: `mosquitto.conf`
+2. Create or edit the file `mosquitto.conf` using a text editor (Notepad, VS Code, etc.)
 3. If the file doesn't exist, create it as a plain text file
 4. Add the following configuration:
 
@@ -124,13 +140,7 @@ mosquitto version x.x.x running
 
 4. Keep this terminal open while the broker is running
 
-### 5. Verify the Broker is Running
-
-Test MQTT connectivity:
-- **MQTT (TCP)**: Connect to `localhost:1883`
-- **WebSockets**: Connect to `ws://localhost:9001`
-
-> Note: Keep the Mosquitto broker running in a separate terminal window before starting your ESP32 or web client applications.
+> **Note**: Keep the Mosquitto broker running in a separate terminal window before starting your ESP32 or web client applications.
 
 ## Setting Up the Database
 
