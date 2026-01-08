@@ -8,7 +8,7 @@ const MQTT_TOPIC = "esp32/data";
 
 const API_URL = "http://localhost:3000/api";  // Node.js/Express server
 const POLL_INTERVAL = 5000;                     // HTTP poll every 5 seconds
-const CHART_UPDATE_INTERVAL = 60000;            // Chart refresh every minute
+const CHART_UPDATE_INTERVAL = 20000;            // Chart refresh 
 
 // Thresholds for cold storage
 const TEMP_MAX_LIMIT = 20;       // °C - Critical high
@@ -456,20 +456,20 @@ function renderChart(labels, temps, hums) {
         {
           label: "Temperature (°C)",
           data: temps,
-          borderColor: "#ff6b6b",
+          borderColor: "#6bff6bff",
           backgroundColor: "rgba(255,107,107,0.1)",
           tension: 0.15,
           borderWidth: 2,
           fill: true,
           pointRadius: showPoints ? 3 : 0,
           pointHoverRadius: 5,
-          pointBackgroundColor: "#ff6b6b",
+          pointBackgroundColor: "#6bff6bff",
           spanGaps: false
         },
         {
           label: "Humidity (%)",
           data: hums,
-          borderColor: "#4ecdc4",
+          borderColor: "#f1e207ff",
           backgroundColor: "rgba(78,205,196,0.1)",
           tension: 0.15,
           borderWidth: 2,
@@ -477,7 +477,7 @@ function renderChart(labels, temps, hums) {
           yAxisID: "y1",
           pointRadius: showPoints ? 3 : 0,
           pointHoverRadius: 5,
-          pointBackgroundColor: "#4ecdc4",
+          pointBackgroundColor: "#f1e207ff",
           spanGaps: false
         }
       ]

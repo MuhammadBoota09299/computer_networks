@@ -8,8 +8,8 @@
 
 body {
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  background: linear-gradient(135deg, #e0f2ff 0%, #b3e0ff 100%);
-  color: #2c3e50;
+  background: linear-gradient(135deg, #05eb2c 0%, #b3e0ff 100%);
+  color: #1976d3;
   min-height: 100vh;
   line-height: 1.6;
 }
@@ -258,87 +258,6 @@ header p {
 .message-entry .time {
   color: #64748b;
   font-size: 0.8rem;
-}
-
-/* Comparison Section */
-.comparison-section {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-  gap: 20px;
-}
-
-.comparison-card {
-  border: 2px solid #e2e8f0;
-  border-radius: 12px;
-  padding: 20px;
-  transition: all 0.3s ease;
-}
-
-.comparison-card.active {
-  border-color: #3b82f6;
-  background: #eff6ff;
-  box-shadow: 0 8px 25px rgba(59, 130, 246, 0.15);
-}
-
-.comparison-card h3 {
-  color: #1e40af;
-  margin-bottom: 10px;
-}
-
-.protocol-description {
-  font-style: italic;
-  color: #64748b;
-  margin-bottom: 15px;
-}
-
-.pros, .cons {
-  margin: 15px 0;
-}
-
-.pros h4 { color: #16a34a; }
-.cons h4 { color: #dc2626; }
-
-.recommendation {
-  margin-top: 15px;
-  padding: 12px;
-  background: #dbeafe;
-  border-radius: 8px;
-  font-weight: 600;
-  color: #1e40af;
-}
-
-/* Recommendation Card */
-.recommendation-card {
-  background: linear-gradient(135deg, #dbeafe, #bfdbfe);
-  border: 2px solid #3b82f6;
-}
-
-.recommendation-content ul {
-  margin-left: 20px;
-  margin-top: 10px;
-}
-
-/* Comparison Table */
-.comparison-table table {
-  width: 100%;
-  border-collapse: collapse;
-  margin-top: 15px;
-}
-
-.comparison-table th, .comparison-table td {
-  padding: 12px;
-  text-align: left;
-  border-bottom: 1px solid #e2e8f0;
-}
-
-.comparison-table th {
-  background: #1e40af;
-  color: white;
-  font-weight: 600;
-}
-
-.comparison-table tr:nth-child(even) {
-  background: #f8fafc;
 }
 
 /* Animations */
