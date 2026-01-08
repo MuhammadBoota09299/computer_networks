@@ -21,12 +21,12 @@
     <!-- Connection Status -->
     <div class="status-card">
       <div class="status-container">
-        <div id="mqtt-status" class="status disconnected">
-          <span class="status-indicator"></span>
+        <div id="mqtt-status" class="status disconnected" role="status" aria-live="polite" aria-atomic="true">
+          <span class="status-indicator" aria-hidden="true"></span>
           <span id="mqtt-status-text">MQTT: Connecting...</span>
         </div>
-        <div id="http-status" class="status disconnected">
-          <span class="status-indicator"></span>
+        <div id="http-status" class="status disconnected" role="status" aria-live="polite" aria-atomic="true">
+          <span class="status-indicator" aria-hidden="true"></span>
           <span id="http-status-text">HTTP: Polling...</span>
         </div>
       </div>
@@ -37,57 +37,77 @@
 
     <!-- Protocol Selector -->
     <div class="protocol-selector">
-      <button id="toggle-mqtt" class="protocol-btn active" data-protocol="mqtt">
+      <button id="toggle-mqtt" class="protocol-btn active" data-protocol="mqtt" aria-pressed="false" aria-label="Enable MQTT real-time updates">
         🔄 MQTT Real-time
       </button>
-      <button id="toggle-http" class="protocol-btn active" data-protocol="http">
+      <button id="toggle-http" class="protocol-btn active" data-protocol="http" aria-pressed="false" aria-label="Enable HTTP periodic updates">
         📊 HTTP Periodic
       </button>
-      <button id="toggle-both" class="protocol-btn active" data-protocol="both">
+      <button id="toggle-both" class="protocol-btn active" data-protocol="both" aria-pressed="false" aria-label="Enable both protocols">
         ⚡ Use Both
       </button>
     </div>
 
     <!-- Main Dashboard -->
     <div class="dashboard">
-      <!-- Temperature Card -->
-      <div class="temperature-card">
-        <h2>🌡️ Temperature</h2>
-        <div class="sensor-value" id="temperature">--.-</div>
-        <div class="unit">°C</div>
-        <div class="data-source" id="temp-source"></div>
-        <div class="stats-grid">
-          <div class="stat-item">
-            <div class="stat-label">Max (24h)</div>
-            <div class="stat-value" id="max-temp">--</div>
+      <!-- Milk Sensor Card -->
+      <div class="sensor-card milk-card">
+        <h2>🥛 Milk Storage</h2>
+        <div class="sensor-readings">
+          <div class="reading-item">
+            <div class="reading-label">🌡️ Temperature</div>
+            <div class="sensor-value" id="milk-temp">--.-</div>
+            <div class="unit">°C</div>
           </div>
-          <div class="stat-item">
-            <div class="stat-label">Min (24h)</div>
-            <div class="stat-value" id="min-temp">--</div>
+          <div class="reading-item">
+            <div class="reading-label">💧 Humidity</div>
+            <div class="sensor-value" id="milk-humidity">--.-</div>
+            <div class="unit">%</div>
           </div>
         </div>
-        <div class="last-update" id="temp-update">Waiting for data...</div>
-        <div id="temp-alert" class="alert-box" style="display: none;"></div>
+        <div class="data-source" id="milk-source"></div>
+        <div class="stats-grid">
+          <div class="stat-item">
+            <div class="stat-label">Max Temp (24h)</div>
+            <div class="stat-value" id="max-milk-temp">--</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-label">Min Temp (24h)</div>
+            <div class="stat-value" id="min-milk-temp">--</div>
+          </div>
+        </div>
+        <div class="last-update" id="milk-update">Waiting for data...</div>
+        <div id="milk-alert" class="alert-box" style="display: none;"></div>
       </div>
 
-      <!-- Humidity Card -->
-      <div class="humidity-card">
-        <h2>💧 Humidity</h2>
-        <div class="sensor-value" id="humidity">--.-</div>
-        <div class="unit">%</div>
-        <div class="data-source" id="humidity-source"></div>
-        <div class="stats-grid">
-          <div class="stat-item">
-            <div class="stat-label">Max (24h)</div>
-            <div class="stat-value" id="max-humidity">--</div>
+      <!-- Vegetables Sensor Card -->
+      <div class="sensor-card vegetables-card">
+        <h2>🥬 Vegetables Storage</h2>
+        <div class="sensor-readings">
+          <div class="reading-item">
+            <div class="reading-label">🌡️ Temperature</div>
+            <div class="sensor-value" id="veg-temp">--.-</div>
+            <div class="unit">°C</div>
           </div>
-          <div class="stat-item">
-            <div class="stat-label">Min (24h)</div>
-            <div class="stat-value" id="min-humidity">--</div>
+          <div class="reading-item">
+            <div class="reading-label">💧 Humidity</div>
+            <div class="sensor-value" id="veg-humidity">--.-</div>
+            <div class="unit">%</div>
           </div>
         </div>
-        <div class="last-update" id="humidity-update">Waiting for data...</div>
-        <div id="humidity-alert" class="alert-box" style="display: none;"></div>
+        <div class="data-source" id="veg-source"></div>
+        <div class="stats-grid">
+          <div class="stat-item">
+            <div class="stat-label">Max Temp (24h)</div>
+            <div class="stat-value" id="max-veg-temp">--</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-label">Min Temp (24h)</div>
+            <div class="stat-value" id="min-veg-temp">--</div>
+          </div>
+        </div>
+        <div class="last-update" id="veg-update">Waiting for data...</div>
+        <div id="veg-alert" class="alert-box" style="display: none;"></div>
       </div>
 
       <!-- Statistics Card -->
@@ -113,18 +133,25 @@
         </div>
       </div>
 
-      <!-- Chart -->
+      <!-- Charts -->
       <div class="chart-container full-width">
-        <h2>📈 Historical Data (All Available Readings)</h2>
-        <div class="chart-wrapper">
-          <canvas id="dataChart"></canvas>
+        <h2>📈 Historical Data</h2>
+        <div class="dual-charts">
+          <div class="mini-chart-wrapper">
+            <h3>🥛 Milk - Historical</h3>
+            <canvas id="milkChart" role="img" aria-label="Milk historical temperature chart"></canvas>
+          </div>
+          <div class="mini-chart-wrapper">
+            <h3>🥬 Vegetables - Historical</h3>
+            <canvas id="vegChart" role="img" aria-label="Vegetables historical temperature chart"></canvas>
+          </div>
         </div>
       </div>
 
       <!-- Message Log -->
       <div class="log-card full-width">
         <h2>📋 Activity Log (Real-time Events)</h2>
-        <div id="message-log"></div>
+        <div id="message-log" aria-live="polite"></div>
       </div>
     </div>
   </div>

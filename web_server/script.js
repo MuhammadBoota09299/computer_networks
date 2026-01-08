@@ -21,6 +21,8 @@ const HUMIDITY_MAX_LIMIT = 90;  // % - Too humid
 
 let mqttClient = null;
 let chart = null;
+let milkChart = null;
+let vegChart = null;
 let protocolMode = "both"; // "mqtt", "http", "both"
 
 let stats = {
@@ -31,8 +33,8 @@ let stats = {
 };
 
 let latestData = {
-  temperature: null,
-  humidity: null,
+  milk: { temperature: null, humidity: null },
+  vegetables: { temperature: null, humidity: null },
   source: null,
   timestamp: null
 };
@@ -45,25 +47,29 @@ const mqttStatusEl = document.getElementById("mqtt-status-text");
 const httpStatusEl = document.getElementById("http-status-text");
 const activeProtocolEl = document.getElementById("active-protocol");
 
-const temperatureEl = document.getElementById("temperature");
-const humidityEl = document.getElementById("humidity");
-const tempSourceEl = document.getElementById("temp-source");
-const humiditySourceEl = document.getElementById("humidity-source");
-const tempUpdateEl = document.getElementById("temp-update");
-const humidityUpdateEl = document.getElementById("humidity-update");
+// Milk sensor elements
+const milkTempEl = document.getElementById("milk-temp");
+const milkHumidityEl = document.getElementById("milk-humidity");
+const milkSourceEl = document.getElementById("milk-source");
+const milkUpdateEl = document.getElementById("milk-update");
+const maxMilkTempEl = document.getElementById("max-milk-temp");
+const minMilkTempEl = document.getElementById("min-milk-temp");
+const milkAlertEl = document.getElementById("milk-alert");
 
-const maxTempEl = document.getElementById("max-temp");
-const minTempEl = document.getElementById("min-temp");
-const maxHumidityEl = document.getElementById("max-humidity");
-const minHumidityEl = document.getElementById("min-humidity");
+// Vegetables sensor elements
+const vegTempEl = document.getElementById("veg-temp");
+const vegHumidityEl = document.getElementById("veg-humidity");
+const vegSourceEl = document.getElementById("veg-source");
+const vegUpdateEl = document.getElementById("veg-update");
+const maxVegTempEl = document.getElementById("max-veg-temp");
+const minVegTempEl = document.getElementById("min-veg-temp");
+const vegAlertEl = document.getElementById("veg-alert");
 
 const dataCountEl = document.getElementById("data-count");
 const mqttCountEl = document.getElementById("mqtt-count");
 const httpPostCountEl = document.getElementById("http-post-count");
 const alertCountEl = document.getElementById("alert-count");
 
-const tempAlertEl = document.getElementById("temp-alert");
-const humidityAlertEl = document.getElementById("humidity-alert");
 const messageLog = document.getElementById("message-log");
 
 // Protocol buttons
@@ -89,8 +95,8 @@ document.addEventListener("DOMContentLoaded", () => {
   }
   if (protocolMode === "http" || protocolMode === "both") {
     startHTTPPolling();
-    loadChartData();
-    chartInterval = setInterval(loadChartData, CHART_UPDATE_INTERVAL);
+    loadDualCharts();
+    chartInterval = setInterval(loadDualCharts, CHART_UPDATE_INTERVAL);
   }
 });
 
@@ -193,7 +199,10 @@ function onMQTTMessage(message) {
 
   try {
     const data = JSON.parse(payload);
-    processSensorData(data, "mqtt", now);
+    // Process both milk and vegetables sensor data
+    if (data.milk && data.vegetables) {
+      processDualSensorData(data.milk, data.vegetables, "mqtt", now);
+    }
     stats.mqttCount++;
     mqttCountEl.textContent = stats.mqttCount;
   } catch (e) {
@@ -238,10 +247,17 @@ async function loadCurrentHTTPData() {
     const unit = data[0];
     const now = new Date();
 
-    processSensorData({
-      temperature: unit.temperature,
-      humidity: unit.humidity
-    }, "http", now);
+    // Parse dual sensor data from HTTP
+    let milkData = { temperature: unit.temperature, humidity: unit.humidity };
+    let vegData = { temperature: unit.temperature, humidity: unit.humidity };
+    
+    // Try to parse if they're nested
+    if (unit.milk && unit.vegetables) {
+      milkData = unit.milk;
+      vegData = unit.vegetables;
+    }
+
+    processDualSensorData(milkData, vegData, "http", now);
 
     stats.httpCount++;
     httpPostCountEl.textContent = stats.httpCount;
@@ -261,6 +277,46 @@ function updateHTTPStatus(connected, text) {
 // ═══════════════════════════════════════════════════════════
 // DATA PROCESSING
 // ═══════════════════════════════════════════════════════════
+
+function processDualSensorData(milkData, vegData, source, timestamp) {
+  const milkTemp = parseFloat(milkData.temperature);
+  const milkHum = parseFloat(milkData.humidity);
+  const vegTemp = parseFloat(vegData.temperature);
+  const vegHum = parseFloat(vegData.humidity);
+
+  if (isNaN(milkTemp) || isNaN(milkHum) || isNaN(vegTemp) || isNaN(vegHum)) return;
+
+  latestData = {
+    milk: { temperature: milkTemp, humidity: milkHum },
+    vegetables: { temperature: vegTemp, humidity: vegHum },
+    source,
+    timestamp: timestamp.toLocaleTimeString()
+  };
+
+  // Update Milk sensor display
+  milkTempEl.textContent = milkTemp.toFixed(1);
+  milkHumidityEl.textContent = milkHum.toFixed(1);
+  milkTempEl.style.color = getTemperatureColor(milkTemp);
+  milkHumidityEl.style.color = getHumidityColor(milkHum);
+  milkSourceEl.textContent = `Source: ${source.toUpperCase()}`;
+  milkUpdateEl.textContent = `Last: ${timestamp.toLocaleTimeString()}`;
+
+  // Update Vegetables sensor display
+  vegTempEl.textContent = vegTemp.toFixed(1);
+  vegHumidityEl.textContent = vegHum.toFixed(1);
+  vegTempEl.style.color = getTemperatureColor(vegTemp);
+  vegHumidityEl.style.color = getHumidityColor(vegHum);
+  vegSourceEl.textContent = `Source: ${source.toUpperCase()}`;
+  vegUpdateEl.textContent = `Last: ${timestamp.toLocaleTimeString()}`;
+
+  // Check alerts for both sensors
+  checkDualSensorAlerts(milkTemp, milkHum, vegTemp, vegHum);
+
+  addLog(`📊 ${source.toUpperCase()}: Milk ${milkTemp.toFixed(1)}°C/${milkHum.toFixed(1)}% | Veg ${vegTemp.toFixed(1)}°C/${vegHum.toFixed(1)}%`);
+
+  stats.dataPoints++;
+  dataCountEl.textContent = stats.dataPoints;
+}
 
 function processSensorData(data, source, timestamp) {
   const temp = parseFloat(data.temperature);
@@ -293,6 +349,47 @@ function processSensorData(data, source, timestamp) {
 // ═══════════════════════════════════════════════════════════
 // ALERT SYSTEM
 // ═══════════════════════════════════════════════════════════
+
+function checkDualSensorAlerts(milkTemp, milkHum, vegTemp, vegHum) {
+  let alerted = false;
+
+  // Check milk sensor alerts
+  if (milkTemp > TEMP_MAX_LIMIT) {
+    showAlert(milkAlertEl, `🚨 CRITICAL: Milk Temp ${milkTemp.toFixed(1)}°C > ${TEMP_MAX_LIMIT}°C!`, "danger");
+    alerted = true;
+  } else if (milkTemp < TEMP_MIN_LIMIT) {
+    showAlert(milkAlertEl, `🧊 WARNING: Milk Temp ${milkTemp.toFixed(1)}°C below ${TEMP_MIN_LIMIT}°C`, "warning");
+    alerted = true;
+  } else {
+    hideAlert(milkAlertEl);
+  }
+
+  if (milkHum > HUMIDITY_MAX_LIMIT) {
+    showAlert(milkAlertEl, `💧 HIGH HUMIDITY (Milk): ${milkHum.toFixed(1)}% > ${HUMIDITY_MAX_LIMIT}%`, "warning");
+    alerted = true;
+  }
+
+  // Check vegetables sensor alerts
+  if (vegTemp > TEMP_MAX_LIMIT) {
+    showAlert(vegAlertEl, `🚨 CRITICAL: Veg Temp ${vegTemp.toFixed(1)}°C > ${TEMP_MAX_LIMIT}°C!`, "danger");
+    alerted = true;
+  } else if (vegTemp < TEMP_MIN_LIMIT) {
+    showAlert(vegAlertEl, `🧊 WARNING: Veg Temp ${vegTemp.toFixed(1)}°C below ${TEMP_MIN_LIMIT}°C`, "warning");
+    alerted = true;
+  } else {
+    hideAlert(vegAlertEl);
+  }
+
+  if (vegHum > HUMIDITY_MAX_LIMIT) {
+    showAlert(vegAlertEl, `💧 HIGH HUMIDITY (Veg): ${vegHum.toFixed(1)}% > ${HUMIDITY_MAX_LIMIT}%`, "warning");
+    alerted = true;
+  }
+
+  if (alerted) {
+    stats.alertCount++;
+    alertCountEl.textContent = stats.alertCount;
+  }
+}
 
 function checkAlerts(temp, hum) {
   let alerted = false;
@@ -395,35 +492,50 @@ async function loadChartData() {
 }
 
 function updateStatsFromHistory(data) {
-  // Handle both raw data and aggregated data
-  const temps = data.map(d => {
-    // Try raw data first, then aggregated
-    const temp = parseFloat(d.temperature) || parseFloat(d.max_temp) || parseFloat(d.min_temp);
-    return !isNaN(temp) ? temp : null;
-  }).filter(v => v !== null);
-  
-  const hums = data.map(d => {
-    // Try raw data first, then aggregated
-    const hum = parseFloat(d.humidity) || parseFloat(d.max_humidity) || parseFloat(d.min_humidity);
-    return !isNaN(hum) ? hum : null;
-  }).filter(v => v !== null);
+  // Support both raw per-reading rows (unit_type + temperature/humidity)
+  // and aggregated rows (unit_type + avg_temp/avg_humidity)
+  const milkTemps = [];
+  const vegTemps = [];
+  const milkHums = [];
+  const vegHums = [];
 
-  console.log("Stats - Temperature values:", temps.length, "| Humidity values:", hums.length);
+  data.forEach(d => {
+    const unit = (d.unit_type || '').toString().toLowerCase();
+    const temp = parseFloat(d.temperature || d.avg_temp || d.milk_temperature || d.milk_temp);
+    const hum = parseFloat(d.humidity || d.avg_humidity || d.milk_humidity || d.humidity);
+    if (!isNaN(temp)) {
+      if (unit === 'milk') milkTemps.push(temp);
+      else if (unit === 'vegetables') vegTemps.push(temp);
+      else {
+        // unknown unit: try to push to both if reasonable
+        milkTemps.push(temp);
+        vegTemps.push(temp);
+      }
+    }
+    if (!isNaN(hum)) {
+      if (unit === 'milk') milkHums.push(hum);
+      else if (unit === 'vegetables') vegHums.push(hum);
+      else {
+        milkHums.push(hum);
+        vegHums.push(hum);
+      }
+    }
+  });
 
-  if (temps.length > 0) {
-    const maxTemp = Math.max(...temps);
-    const minTemp = Math.min(...temps);
-    maxTempEl.textContent = maxTemp.toFixed(1);
-    minTempEl.textContent = minTemp.toFixed(1);
-    console.log(`  ✓ Max Temp: ${maxTemp.toFixed(1)}°C | Min Temp: ${minTemp.toFixed(1)}°C`);
+  console.log("Stats - Milk temps:", milkTemps.length, "| Veg temps:", vegTemps.length);
+
+  if (milkTemps.length > 0) {
+    const maxTemp = Math.max(...milkTemps);
+    const minTemp = Math.min(...milkTemps);
+    maxMilkTempEl.textContent = maxTemp.toFixed(1);
+    minMilkTempEl.textContent = minTemp.toFixed(1);
   }
-  
-  if (hums.length > 0) {
-    const maxHum = Math.max(...hums);
-    const minHum = Math.min(...hums);
-    maxHumidityEl.textContent = maxHum.toFixed(1);
-    minHumidityEl.textContent = minHum.toFixed(1);
-    console.log(`  ✓ Max Humidity: ${maxHum.toFixed(1)}% | Min Humidity: ${minHum.toFixed(1)}%`);
+
+  if (vegTemps.length > 0) {
+    const maxTemp = Math.max(...vegTemps);
+    const minTemp = Math.min(...vegTemps);
+    maxVegTempEl.textContent = maxTemp.toFixed(1);
+    minVegTempEl.textContent = minTemp.toFixed(1);
   }
 }
 
@@ -440,14 +552,28 @@ function renderChart(labels, temps, hums) {
 
   if (chart) chart.destroy();
 
-  console.log("Creating chart with Chart.js...");
-  console.log(`  Data points: ${labels.length}`);
-  
-  // Optimize for large datasets
+  // Utility: create vertical gradient for fills
+  function createGradient(ctx, colorStart, colorEnd) {
+    const g = ctx.createLinearGradient(0, 0, 0, chartCanvas.height || 300);
+    g.addColorStop(0, colorStart);
+    g.addColorStop(1, colorEnd);
+    return g;
+  }
+
+  // Dynamic y bounds with padding
+  const tempVals = temps.filter(v => !isNaN(v));
+  const humVals = hums.filter(v => !isNaN(v));
+  const allTempMin = tempVals.length ? Math.min(...tempVals) : 0;
+  const allTempMax = tempVals.length ? Math.max(...tempVals) : 30;
+  const tempPad = Math.max(1, (allTempMax - allTempMin) * 0.12);
+
+  const allHumMin = humVals.length ? Math.min(...humVals) : 0;
+  const allHumMax = humVals.length ? Math.max(...humVals) : 100;
+  const humPad = Math.max(2, (allHumMax - allHumMin) * 0.12);
+
   const dataPointCount = labels.length;
-  const showPoints = dataPointCount <= 50;
-  const decimationEnabled = dataPointCount > 100;
-  
+  const showPoints = dataPointCount <= 60;
+
   chart = new Chart(ctx, {
     type: "line",
     data: {
@@ -456,109 +582,90 @@ function renderChart(labels, temps, hums) {
         {
           label: "Temperature (°C)",
           data: temps,
-          borderColor: "#6bff6bff",
-          backgroundColor: "rgba(255,107,107,0.1)",
-          tension: 0.15,
-          borderWidth: 2,
-          fill: true,
+          borderColor: "#ff7a45",
+          backgroundColor: createGradient(ctx, 'rgba(255,122,69,0.22)', 'rgba(255,122,69,0.02)'),
+          tension: 0.28,
+          borderWidth: 2.5,
           pointRadius: showPoints ? 3 : 0,
-          pointHoverRadius: 5,
-          pointBackgroundColor: "#6bff6bff",
-          spanGaps: false
+          pointHoverRadius: 6,
+          pointBackgroundColor: '#ff7a45',
+          fill: true,
+          spanGaps: true
         },
         {
           label: "Humidity (%)",
           data: hums,
-          borderColor: "#f1e207ff",
-          backgroundColor: "rgba(78,205,196,0.1)",
-          tension: 0.15,
-          borderWidth: 2,
+          borderColor: "#2bb3ff",
+          backgroundColor: createGradient(ctx, 'rgba(43,179,255,0.18)', 'rgba(43,179,255,0.02)'),
+          tension: 0.28,
+          borderWidth: 2.5,
           fill: true,
           yAxisID: "y1",
           pointRadius: showPoints ? 3 : 0,
-          pointHoverRadius: 5,
-          pointBackgroundColor: "#f1e207ff",
-          spanGaps: false
+          pointHoverRadius: 6,
+          pointBackgroundColor: '#2bb3ff',
+          spanGaps: true
         }
       ]
     },
     options: {
       responsive: true,
       maintainAspectRatio: false,
-      interaction: {
-        mode: 'index',
-        intersect: false
-      },
-      animation: {
-        duration: 500
-      },
+      interaction: { mode: 'nearest', intersect: false },
+      animation: { duration: 350 },
       plugins: {
-        legend: {
-          display: true,
-          position: 'top',
-          labels: {
-            usePointStyle: true,
-            padding: 15
-          }
-        },
-        title: {
-          display: true,
-          text: `Historical Data - ${dataPointCount} readings`,
-          padding: 15
-        },
+        legend: { display: true, position: 'top', labels: { usePointStyle: true } },
+        title: { display: true, text: `Historical Data · ${dataPointCount} readings`, padding: 10 },
         tooltip: {
           enabled: true,
           mode: 'index',
           intersect: false,
-          backgroundColor: 'rgba(0, 0, 0, 0.8)',
+          backgroundColor: 'rgba(0,0,0,0.85)',
           titleColor: '#fff',
           bodyColor: '#fff',
-          borderColor: '#ddd',
-          borderWidth: 1,
-          padding: 12,
-          displayColors: true
+          padding: 10,
+          callbacks: {
+            title: (items) => items && items.length ? items[0].label : '',
+            label: (ctx) => `${ctx.dataset.label}: ${ctx.formattedValue}`
+          }
         }
       },
       scales: {
         x: {
           ticks: {
-            maxTicksLimit: Math.min(12, Math.ceil(dataPointCount / 10)),
             maxRotation: 45,
-            minRotation: 0
+            autoSkip: true,
+            maxTicksLimit: 12,
+            callback: function(value, index) {
+              // Prefer concise 1-based numeric labels when original labels are generic (Reading # or #N)
+              const label = this.getLabelForValue(value);
+              if (!label) return '';
+              const m = label.toString().match(/^#?(?:Reading\s*)?(\d+)$/i);
+              if (m) return String(Number(m[1]));
+              return label;
+            }
           },
-          grid: {
-            display: true,
-            color: 'rgba(0, 0, 0, 0.05)'
-          }
+          grid: { color: 'rgba(0,0,0,0.04)' }
         },
-        y: { 
-          position: "left",
-          title: {
-            display: true,
-            text: 'Temperature (°C)',
-            font: { size: 12, weight: 'bold' }
-          },
-          grid: {
-            color: 'rgba(0, 0, 0, 0.05)'
-          }
+        y: {
+          position: 'left',
+          title: { display: true, text: 'Temperature (°C)' },
+          suggestedMin: allTempMin - tempPad,
+          suggestedMax: allTempMax + tempPad,
+          grid: { color: 'rgba(0,0,0,0.04)' }
         },
-        y1: { 
-          position: "right",
-          title: {
-            display: true,
-            text: 'Humidity (%)',
-            font: { size: 12, weight: 'bold' }
-          },
-          grid: { 
-            drawOnChartArea: false 
-          }
+        y1: {
+          position: 'right',
+          title: { display: true, text: 'Humidity (%)' },
+          suggestedMin: Math.max(0, allHumMin - humPad),
+          suggestedMax: Math.min(100, allHumMax + humPad),
+          grid: { drawOnChartArea: false }
         }
       }
     }
   });
-  
-  console.log("✅ Chart rendered successfully with", dataPointCount, "data points");
-  addLog(`📈 Chart plotted: ${dataPointCount} readings (${showPoints ? 'with' : 'without'} point markers)`, "info");
+
+  addLog(`📈 Chart plotted: ${dataPointCount} readings`, "info");
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -593,4 +700,148 @@ function getHumidityColor(hum) {
   if (hum < 60) return "#28a745";
   if (hum < 80) return "#ffc107";
   return "#dc3545";
+}
+
+// New: load and render separate charts for milk and vegetables
+async function loadDualCharts() {
+  if (protocolMode === "mqtt") {
+    console.log("Chart disabled: MQTT-only mode");
+    return;
+  }
+
+  try {
+    // Prefer aggregated hourly data
+    let response = await fetch(`${API_URL}/history-all`);
+    let data = await response.json();
+
+    if (!response.ok || !data || data.length === 0) {
+      // Fallback to raw data
+      response = await fetch(`${API_URL}/raw-data`);
+      data = await response.json();
+    }
+
+    // Separate datasets
+    const milkLabels = [];
+    const milkTemps = [];
+    const milkHums = [];
+
+    const vegLabels = [];
+    const vegTemps = [];
+    const vegHums = [];
+
+    data.forEach((d, idx) => {
+      const unit = (d.unit_type || d.unit_type || '').toString().toLowerCase();
+      const timeLabel = d.time ? (new Date(d.time)).toLocaleString() : `#${idx+1}`;
+
+      if (unit === 'milk') {
+        milkLabels.push(timeLabel);
+        milkTemps.push(parseFloat(d.temperature || d.avg_temp || d.milk_temperature || d.milk_temp) || 0);
+        milkHums.push(parseFloat(d.humidity || d.avg_humidity || d.milk_humidity) || 0);
+      } else if (unit === 'vegetables') {
+        vegLabels.push(timeLabel);
+        vegTemps.push(parseFloat(d.temperature || d.avg_temp || d.veg_temperature || d.veg_temp) || 0);
+        vegHums.push(parseFloat(d.humidity || d.avg_humidity || d.veg_humidity) || 0);
+      }
+    });
+
+    renderMiniChart('milkChart', milkLabels, milkTemps, milkHums, 'Milk Temperature / Humidity');
+    renderMiniChart('vegChart', vegLabels, vegTemps, vegHums, 'Vegetables Temperature / Humidity');
+
+    addLog(`📈 Dual charts updated: Milk ${milkTemps.length} points, Veg ${vegTemps.length} points`, 'info');
+  } catch (err) {
+    console.error('❌ Dual charts load error:', err);
+    addLog(`❌ Chart error: ${err.message}`, 'error');
+  }
+}
+
+function renderMiniChart(canvasId, labels, temps, hums, title) {
+  const canvas = document.getElementById(canvasId);
+  if (!canvas) return;
+
+  let chartRef = canvasId === 'milkChart' ? milkChart : vegChart;
+  if (chartRef) chartRef.destroy();
+
+  const ctx = canvas.getContext('2d');
+  // create subtle gradients
+  function createGradientLocal(c, a, b) {
+    const g = c.createLinearGradient(0, 0, 0, canvas.height || 220);
+    g.addColorStop(0, a);
+    g.addColorStop(1, b);
+    return g;
+  }
+
+  const tempVals = temps.filter(v => !isNaN(v));
+  const humVals = hums.filter(v => !isNaN(v));
+  const tMin = tempVals.length ? Math.min(...tempVals) : 0;
+  const tMax = tempVals.length ? Math.max(...tempVals) : 30;
+  const hMin = humVals.length ? Math.min(...humVals) : 0;
+  const hMax = humVals.length ? Math.max(...humVals) : 100;
+
+  chartRef = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: labels,
+      datasets: [
+        {
+          label: 'Temperature (°C)',
+          data: temps,
+          borderColor: '#ff8a65',
+          backgroundColor: createGradientLocal(ctx, 'rgba(255,138,101,0.18)', 'rgba(255,138,101,0.02)'),
+          tension: 0.32,
+          borderWidth: 2,
+          pointRadius: 0,
+          pointHoverRadius: 6,
+          fill: true,
+          yAxisID: 'y'
+        },
+        {
+          label: 'Humidity (%)',
+          data: hums,
+          borderColor: '#66c2ff',
+          backgroundColor: createGradientLocal(ctx, 'rgba(102,194,255,0.12)', 'rgba(102,194,255,0.02)'),
+          tension: 0.32,
+          borderWidth: 2,
+          pointRadius: 0,
+          pointHoverRadius: 6,
+          fill: true,
+          yAxisID: 'y1'
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        title: { display: true, text: title, padding: 6 },
+        legend: { display: true, position: 'top' },
+        tooltip: {
+          mode: 'index',
+          intersect: false,
+          callbacks: { title: (items) => items && items.length ? items[0].label : '', label: (ctx) => `${ctx.dataset.label}: ${ctx.formattedValue}` }
+        }
+      },
+      elements: { point: { hoverRadius: 6 } },
+      scales: {
+        x: { 
+          ticks: { 
+            maxRotation: 30,
+            autoSkip: true,
+            callback: function(value, index) {
+              const label = this.getLabelForValue(value);
+              if (!label) return '';
+              const m = label.toString().match(/^#?(?:Reading\s*)?(\d+)$/i);
+              if (m) return String(Number(m[1]));
+              return label;
+            }
+          },
+          grid: { color: 'rgba(0,0,0,0.03)' } 
+        },
+        y: { position: 'left', suggestedMin: tMin - 1, suggestedMax: tMax + 1, title: { display: true, text: '°C' } },
+        y1: { position: 'right', suggestedMin: Math.max(0, hMin - 5), suggestedMax: Math.min(100, hMax + 5), title: { display: true, text: '%' }, grid: { drawOnChartArea: false } }
+      }
+    }
+  });
+
+  if (canvasId === 'milkChart') milkChart = chartRef;
+  else vegChart = chartRef;
 }
